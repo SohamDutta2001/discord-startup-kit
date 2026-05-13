@@ -375,6 +375,13 @@ async function handleStandupReminder(interaction) {
   });
 }
 
+async function handleAgenda(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+  const item = interaction.options.getString("item", true);
+  await sendToNamedChannel(interaction.guild, "agenda", `**${interaction.user}**: ${item}`);
+  await interaction.editReply("Added to #agenda.");
+}
+
 async function handlePoll(interaction) {
   if (!interaction.channel || interaction.channel.type !== ChannelType.GuildText) {
     await interaction.reply({ content: "Run this in a text channel.", ephemeral: true });
@@ -460,6 +467,35 @@ async function showCommandModal(interaction) {
         { id: "roadmap", label: "Roadmap" },
         { id: "asks", label: "Asks" },
         { id: "blockers", label: "Blockers / risks", required: false }
+      ]));
+      return true;
+    case "retro":
+      await interaction.showModal(makeModal("retro", "Sprint Retrospective", [
+        { id: "went_well", label: "What went well?" },
+        { id: "didnt_go_well", label: "What didn't go well?" },
+        { id: "actions", label: "Action items", required: false, placeholder: "Who owns what, by when" }
+      ]));
+      return true;
+    case "okr":
+      await interaction.showModal(makeModal("okr", "OKR", [
+        {
+          id: "objective",
+          label: "Objective",
+          style: TextInputStyle.Short,
+          maxLength: 200,
+          placeholder: "What do you want to achieve?"
+        },
+        { id: "kr1", label: "Key Result 1", style: TextInputStyle.Short, maxLength: 200 },
+        { id: "kr2", label: "Key Result 2", required: false, style: TextInputStyle.Short, maxLength: 200 },
+        { id: "kr3", label: "Key Result 3", required: false, style: TextInputStyle.Short, maxLength: 200 }
+      ]));
+      return true;
+    case "bug-report":
+      await interaction.showModal(makeModal("bug-report", "Bug Report", [
+        { id: "title", label: "Title", style: TextInputStyle.Short, maxLength: 100 },
+        { id: "severity", label: "Severity", style: TextInputStyle.Short, maxLength: 20, placeholder: "Critical / High / Low" },
+        { id: "steps", label: "Steps to reproduce" },
+        { id: "expected_actual", label: "Expected → Actual", placeholder: "Expected: ...\nActual: ..." }
       ]));
       return true;
     case "metrics":
@@ -559,6 +595,64 @@ async function handleModalSubmit(interaction) {
     return;
   }
 
+  if (kind === "retro") {
+    if (!interaction.channel || interaction.channel.type !== ChannelType.GuildText) {
+      await interaction.reply({ content: "Run /retro in a text channel.", ephemeral: true });
+      return;
+    }
+    const now = new Date();
+    const thread = await interaction.channel.threads.create({
+      name: `Retro - ${now.toLocaleDateString()}`,
+      autoArchiveDuration: 10080,
+      reason: "Sprint retrospective"
+    });
+    await thread.send([
+      `**Retrospective — ${now.toLocaleDateString()}**`,
+      `Run by ${interaction.user}`,
+      "",
+      `**What went well**\n${field(interaction, "went_well")}`,
+      "",
+      `**What didn't go well**\n${field(interaction, "didnt_go_well")}`,
+      "",
+      `**Action items**\n${field(interaction, "actions") || "None logged"}`
+    ].join("\n"));
+    await interaction.reply({ content: `Retro thread created: ${thread}`, ephemeral: true });
+    return;
+  }
+
+  if (kind === "okr") {
+    const kr2 = field(interaction, "kr2");
+    const kr3 = field(interaction, "kr3");
+    const lines = [
+      `**OKR from ${interaction.user}**`,
+      "",
+      `**Objective**\n${field(interaction, "objective")}`,
+      "",
+      "**Key Results**",
+      `1. ${field(interaction, "kr1")}`,
+      kr2 ? `2. ${kr2}` : null,
+      kr3 ? `3. ${kr3}` : null
+    ].filter(Boolean);
+    await sendToNamedChannel(interaction.guild, "okrs", lines.join("\n"));
+    await interaction.reply({ content: "Posted to #okrs.", ephemeral: true });
+    return;
+  }
+
+  if (kind === "bug-report") {
+    await sendToNamedChannel(interaction.guild, "bugs-and-issues", [
+      `**Bug Report from ${interaction.user}**`,
+      "",
+      `**Title**: ${field(interaction, "title")}`,
+      `**Severity**: ${field(interaction, "severity")}`,
+      "",
+      `**Steps to reproduce**\n${field(interaction, "steps")}`,
+      "",
+      `**Expected → Actual**\n${field(interaction, "expected_actual")}`
+    ].join("\n"));
+    await interaction.reply({ content: "Posted to #bugs-and-issues.", ephemeral: true });
+    return;
+  }
+
   if (kind === "metrics") {
     const notes = field(interaction, "notes");
     const lines = [
@@ -630,6 +724,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         break;
       case "shoutout":
         await handleShoutout(interaction);
+        break;
+      case "agenda":
+        await handleAgenda(interaction);
         break;
       default:
         await interaction.reply({ content: "Unknown command.", ephemeral: true });

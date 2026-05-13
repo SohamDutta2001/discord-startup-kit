@@ -34,6 +34,10 @@ Built for early-stage teams that need fewer tools, not more.
 | `/poll` | Everyone | Creates a team poll with up to 4 options and emoji reactions |
 | `/shoutout` | Everyone | Recognizes a teammate publicly in `#wins` |
 | `/metrics` | Everyone | Opens a form and logs a KPI update to `#metrics` |
+| `/retro` | Everyone | Opens a retrospective form and creates a summary thread |
+| `/okr` | Everyone | Opens a form and logs an OKR to `#okrs` |
+| `/agenda` | Everyone | Adds an item to the next meeting agenda in `#agenda` |
+| `/bug-report` | Everyone | Opens a structured bug form and posts to `#bugs-and-issues` |
 | `/create-project` | Manage Channels | Creates a project category with `#overview`, `#tasks`, `#updates`, `#bugs` |
 | `/archive-project` | Manage Channels | Moves a project category's channels into `ARCHIVE` |
 | `/onboard-member` | Manage Roles | Assigns a role and posts a welcome checklist |
@@ -126,7 +130,7 @@ This creates all channels, roles, and permissions. It is safe to re-run — exis
 | PRODUCT | `#product-roadmap`, `#feature-ideas`, `#feedback`, `#bugs-and-issues` |
 | ENGINEERING | `#engineering`, `#deployments`, `#code-reviews`, `#tech-decisions` |
 | GROWTH / BUSINESS | `#sales` *, `#marketing`, `#partnerships` *, `#customer-support` |
-| STRATEGY | `#new-ideas`, `#strategy` *, `#competitors`, `#meeting-notes`, `#agenda` |
+| STRATEGY | `#new-ideas`, `#strategy` *, `#okrs`, `#competitors`, `#meeting-notes`, `#agenda` |
 | VOICE | Daily Standup, Founder Room *, Product Sync, Deep Work |
 
 \* Private — visible only to **Founder** and **Core Team** roles.

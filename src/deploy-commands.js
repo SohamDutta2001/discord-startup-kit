@@ -207,6 +207,29 @@ const commands = [
   new SlashCommandBuilder()
     .setName("metrics")
     .setDescription("Log a KPI or metric update to #metrics.")
+    .toJSON(),
+  new SlashCommandBuilder()
+    .setName("retro")
+    .setDescription("Run a sprint retrospective and post a summary thread in the current channel.")
+    .toJSON(),
+  new SlashCommandBuilder()
+    .setName("okr")
+    .setDescription("Log an objective and key results to #okrs.")
+    .toJSON(),
+  new SlashCommandBuilder()
+    .setName("agenda")
+    .setDescription("Add an item to the next meeting agenda in #agenda.")
+    .addStringOption((option) =>
+      option
+        .setName("item")
+        .setDescription("The agenda item to add.")
+        .setRequired(true)
+        .setMaxLength(300)
+    )
+    .toJSON(),
+  new SlashCommandBuilder()
+    .setName("bug-report")
+    .setDescription("Submit a structured bug report to #bugs-and-issues.")
     .toJSON()
 ];
 

@@ -60,6 +60,7 @@ export const categories = [
     channels: [
       { name: "new-ideas", topic: "Raw ideas and experiments." },
       { name: "strategy", topic: "Company direction and sensitive planning.", privateCore: true },
+      { name: "okrs", topic: "Objectives and key results. Updated each quarter." },
       { name: "competitors", topic: "Market research, competitors, pricing, and screenshots." },
       { name: "meeting-notes", topic: "Meeting notes, decisions, and action items." },
       { name: "agenda", topic: "Agenda items for the next meeting." }
