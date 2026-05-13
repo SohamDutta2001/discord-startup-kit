@@ -1,0 +1,20 @@
+{
+  "name": "gambit-discord-bot",
+  "version": "1.0.0",
+  "description": "Local Discord bot for setting up the Gambit startup server.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "deploy": "node src/deploy-commands.js",
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "check": "node --check src/index.js && node --check src/deploy-commands.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.5.0"
+  }
+}
