@@ -27,7 +27,7 @@ const commands = [
     .toJSON(),
   new SlashCommandBuilder()
     .setName("daily-update")
-    .setDescription("Open a short form for a daily progress update.")
+    .setDescription("Open a form and post your progress update to #daily-updates.")
     .toJSON(),
   new SlashCommandBuilder()
     .setName("idea")
@@ -59,7 +59,7 @@ const commands = [
     .toJSON(),
   new SlashCommandBuilder()
     .setName("weekly-review")
-    .setDescription("Create a weekly review thread with wins, misses, metrics, and priorities.")
+    .setDescription("Create a weekly review thread in this channel with wins, misses, metrics, and priorities.")
     .toJSON(),
   new SlashCommandBuilder()
     .setName("create-project")
@@ -87,7 +87,7 @@ const commands = [
     .toJSON(),
   new SlashCommandBuilder()
     .setName("onboard-member")
-    .setDescription("Assign a role and post a welcome checklist.")
+    .setDescription("Assign a startup role and post a welcome checklist to #start-here.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
     .addUserOption((option) =>
       option
@@ -113,7 +113,7 @@ const commands = [
     .toJSON(),
   new SlashCommandBuilder()
     .setName("investor-update")
-    .setDescription("Format traction, roadmap, asks, and blockers into an investor update.")
+    .setDescription("Open a form and post a formatted investor update to #strategy.")
     .toJSON(),
   new SlashCommandBuilder()
     .setName("clean-server")
@@ -122,7 +122,7 @@ const commands = [
     .toJSON(),
   new SlashCommandBuilder()
     .setName("standup-reminder")
-    .setDescription("Post the daily standup template automatically while the bot is running.")
+    .setDescription("Schedule the standup template to auto-post to #daily-standup each day while the bot is running.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addIntegerOption((option) =>
       option
@@ -150,7 +150,7 @@ const commands = [
     .toJSON(),
   new SlashCommandBuilder()
     .setName("poll")
-    .setDescription("Create a team poll with up to 4 options. Members vote by reacting.")
+    .setDescription("Post a poll in this channel with up to 4 options. Members vote by reacting.")
     .addStringOption((option) =>
       option
         .setName("question")
