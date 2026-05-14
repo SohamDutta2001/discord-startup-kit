@@ -6,6 +6,7 @@ import {
   Client,
   Events,
   GatewayIntentBits,
+  MessageFlags,
   ModalBuilder,
   PermissionFlagsBits,
   TextInputBuilder,
@@ -57,6 +58,30 @@ function findTextChannel(guild, name) {
 
 function findRole(guild, name) {
   return guild.roles.cache.find((role) => role.name.toLowerCase() === name.toLowerCase());
+}
+
+async function getInteractionGuild(interaction) {
+  if (interaction.guild) {
+    return interaction.guild;
+  }
+  if (!interaction.guildId) {
+    throw new Error("This command must be run inside a Discord server.");
+  }
+  const cachedGuild = client.guilds.cache.get(interaction.guildId);
+  if (cachedGuild) {
+    return cachedGuild;
+  }
+
+  try {
+    return await client.guilds.fetch(interaction.guildId);
+  } catch (error) {
+    if (error.code === 10004) {
+      throw new Error(
+        "The bot cannot access this Discord server. Re-invite it with the bot and applications.commands scopes, then try again."
+      );
+    }
+    throw error;
+  }
 }
 
 async function sendToNamedChannel(guild, channelName, content) {
@@ -144,13 +169,14 @@ async function handleSetupGambit(interaction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
     await interaction.reply({
       content: "You need Manage Server permission to run this setup.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
-  const result = await setupGambitServer(interaction.guild, SERVER_NAME);
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const guild = await getInteractionGuild(interaction);
+  const result = await setupGambitServer(guild, SERVER_NAME);
   await interaction.editReply(
     `Gambit setup complete. Checked ${result.roles} roles and ${result.channels} channels.`
   );
@@ -158,7 +184,7 @@ async function handleSetupGambit(interaction) {
 
 async function handleWeeklyReview(interaction) {
   if (!interaction.channel || interaction.channel.type !== ChannelType.GuildText) {
-    await interaction.reply({ content: "Run this in a text channel.", ephemeral: true });
+    await interaction.reply({ content: "Run this in a text channel.", flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -188,25 +214,26 @@ async function handleWeeklyReview(interaction) {
     "- "
   ].join("\n"));
 
-  await interaction.reply({ content: `Created ${thread}.`, ephemeral: true });
+  await interaction.reply({ content: `Created ${thread}.`, flags: MessageFlags.Ephemeral });
 }
 
 async function handleCreateProject(interaction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) {
-    await interaction.reply({ content: "You need Manage Channels permission.", ephemeral: true });
+    await interaction.reply({ content: "You need Manage Channels permission.", flags: MessageFlags.Ephemeral });
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const projectName = interaction.options.getString("name", true);
   const categoryName = `PROJECT - ${projectName}`.slice(0, 100);
-  await interaction.guild.channels.fetch();
+  const guild = await getInteractionGuild(interaction);
+  await guild.channels.fetch();
 
-  let category = interaction.guild.channels.cache.find(
+  let category = guild.channels.cache.find(
     (channel) => channel.type === ChannelType.GuildCategory && channel.name === categoryName
   );
   if (!category) {
-    category = await interaction.guild.channels.create({
+    category = await guild.channels.create({
       name: categoryName,
       type: ChannelType.GuildCategory,
       reason: "Gambit project setup"
@@ -221,14 +248,14 @@ async function handleCreateProject(interaction) {
   ];
 
   for (const [name, topic] of channels) {
-    const existing = interaction.guild.channels.cache.find(
+    const existing = guild.channels.cache.find(
       (channel) =>
         channel.type === ChannelType.GuildText &&
         channel.name === name &&
         channel.parentId === category.id
     );
     if (!existing) {
-      await interaction.guild.channels.create({
+      await guild.channels.create({
         name,
         type: ChannelType.GuildText,
         parent: category,
@@ -243,15 +270,16 @@ async function handleCreateProject(interaction) {
 
 async function handleArchiveProject(interaction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) {
-    await interaction.reply({ content: "You need Manage Channels permission.", ephemeral: true });
+    await interaction.reply({ content: "You need Manage Channels permission.", flags: MessageFlags.Ephemeral });
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const categoryName = interaction.options.getString("category", true);
-  await interaction.guild.channels.fetch();
+  const guild = await getInteractionGuild(interaction);
+  await guild.channels.fetch();
 
-  const category = interaction.guild.channels.cache.find(
+  const category = guild.channels.cache.find(
     (channel) =>
       channel.type === ChannelType.GuildCategory &&
       channel.name.toLowerCase() === categoryName.toLowerCase()
@@ -261,11 +289,11 @@ async function handleArchiveProject(interaction) {
     return;
   }
 
-  let archive = interaction.guild.channels.cache.find(
+  let archive = guild.channels.cache.find(
     (channel) => channel.type === ChannelType.GuildCategory && channel.name === "ARCHIVE"
   );
   if (!archive) {
-    archive = await interaction.guild.channels.create({
+    archive = await guild.channels.create({
       name: "ARCHIVE",
       type: ChannelType.GuildCategory,
       reason: "Gambit archive setup"
@@ -273,7 +301,7 @@ async function handleArchiveProject(interaction) {
   }
 
   const prefix = slugify(category.name.replace(/^PROJECT\s*-\s*/i, ""));
-  const children = interaction.guild.channels.cache.filter((channel) => channel.parentId === category.id);
+  const children = guild.channels.cache.filter((channel) => channel.parentId === category.id);
 
   for (const child of children.values()) {
     if (child.type === ChannelType.GuildText) {
@@ -288,15 +316,16 @@ async function handleArchiveProject(interaction) {
 
 async function handleOnboardMember(interaction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageRoles)) {
-    await interaction.reply({ content: "You need Manage Roles permission.", ephemeral: true });
+    await interaction.reply({ content: "You need Manage Roles permission.", flags: MessageFlags.Ephemeral });
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const user = interaction.options.getUser("member", true);
   const roleName = interaction.options.getString("role", true);
-  const member = await interaction.guild.members.fetch(user.id);
-  const role = findRole(interaction.guild, roleName);
+  const guild = await getInteractionGuild(interaction);
+  const member = await guild.members.fetch(user.id);
+  const role = findRole(guild, roleName);
 
   if (!role) {
     await interaction.editReply(`I could not find the ${roleName} role. Run /setup-gambit first.`);
@@ -316,23 +345,24 @@ async function handleOnboardMember(interaction) {
     "- Post your first update in #daily-updates"
   ].join("\n");
 
-  await sendToNamedChannel(interaction.guild, "start-here", welcome);
+  await sendToNamedChannel(guild, "start-here", welcome);
   await interaction.editReply(`Onboarded ${user.tag} as ${roleName}.`);
 }
 
 async function handleCleanServer(interaction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) {
-    await interaction.reply({ content: "You need Manage Channels permission.", ephemeral: true });
+    await interaction.reply({ content: "You need Manage Channels permission.", flags: MessageFlags.Ephemeral });
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
-  await interaction.guild.channels.fetch();
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const guild = await getInteractionGuild(interaction);
+  await guild.channels.fetch();
 
-  const textChannels = interaction.guild.channels.cache.filter(
+  const textChannels = guild.channels.cache.filter(
     (channel) => channel.type === ChannelType.GuildText && !channel.lastMessageId
   );
-  const emptyVoice = interaction.guild.channels.cache.filter(
+  const emptyVoice = guild.channels.cache.filter(
     (channel) => channel.type === ChannelType.GuildVoice && channel.members.size === 0
   );
 
@@ -351,19 +381,20 @@ async function handleCleanServer(interaction) {
 
 async function handleStandupReminder(interaction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-    await interaction.reply({ content: "You need Manage Server permission.", ephemeral: true });
+    await interaction.reply({ content: "You need Manage Server permission.", flags: MessageFlags.Ephemeral });
     return;
   }
 
   const hour = interaction.options.getInteger("hour", true);
   const minute = interaction.options.getInteger("minute", true);
   const chosenChannel = interaction.options.getChannel("channel");
-  const channel = chosenChannel ?? findTextChannel(interaction.guild, "daily-standup");
+  const guild = await getInteractionGuild(interaction);
+  const channel = chosenChannel ?? findTextChannel(guild, "daily-standup");
 
   if (!channel || channel.type !== ChannelType.GuildText) {
     await interaction.reply({
       content: "I could not find #daily-standup. Run /setup-gambit or choose a text channel.",
-      ephemeral: true
+      flags: MessageFlags.Ephemeral
     });
     return;
   }
@@ -371,20 +402,21 @@ async function handleStandupReminder(interaction) {
   await setStandupReminder(interaction.guildId, channel.id, hour, minute);
   await interaction.reply({
     content: `Daily standup reminder set for ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} local Mac time in ${channel}. Keep the bot running for it to post.`,
-    ephemeral: true
+    flags: MessageFlags.Ephemeral
   });
 }
 
 async function handleAgenda(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const item = interaction.options.getString("item", true);
-  await sendToNamedChannel(interaction.guild, "agenda", `**${interaction.user}**: ${item}`);
+  const guild = await getInteractionGuild(interaction);
+  await sendToNamedChannel(guild, "agenda", `**${interaction.user}**: ${item}`);
   await interaction.editReply("Added to #agenda.");
 }
 
 async function handlePoll(interaction) {
   if (!interaction.channel || interaction.channel.type !== ChannelType.GuildText) {
-    await interaction.reply({ content: "Run this in a text channel.", ephemeral: true });
+    await interaction.reply({ content: "Run this in a text channel.", flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -396,7 +428,7 @@ async function handlePoll(interaction) {
     interaction.options.getString("option4")
   ].filter(Boolean);
 
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const lines = [
     `**Poll by ${interaction.user}**`,
@@ -415,11 +447,12 @@ async function handlePoll(interaction) {
 }
 
 async function handleShoutout(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const recipient = interaction.options.getUser("member", true);
   const reason = interaction.options.getString("reason", true);
+  const guild = await getInteractionGuild(interaction);
 
-  await sendToNamedChannel(interaction.guild, "wins", [
+  await sendToNamedChannel(guild, "wins", [
     `**Shoutout from ${interaction.user}**`,
     "",
     `Big thanks to ${recipient}!`,
@@ -529,21 +562,22 @@ async function showCommandModal(interaction) {
 
 async function handleModalSubmit(interaction) {
   const [kind, param] = interaction.customId.split(":");
+  const guild = await getInteractionGuild(interaction);
 
   if (kind === "daily-update") {
-    await sendToNamedChannel(interaction.guild, "daily-updates", [
+    await sendToNamedChannel(guild, "daily-updates", [
       `**Daily Update from ${interaction.user}**`,
       "",
       `**Progress**\n${field(interaction, "progress")}`,
       `**Blockers**\n${field(interaction, "blockers") || "None"}`,
       `**Help needed**\n${field(interaction, "help") || "None"}`
     ].join("\n\n"));
-    await interaction.reply({ content: "Posted to #daily-updates.", ephemeral: true });
+    await interaction.reply({ content: "Posted to #daily-updates.", flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (kind === "idea") {
-    await sendToNamedChannel(interaction.guild, "new-ideas", [
+    await sendToNamedChannel(guild, "new-ideas", [
       `**New Idea: ${field(interaction, "title")}**`,
       `Submitted by ${interaction.user}`,
       "",
@@ -551,33 +585,33 @@ async function handleModalSubmit(interaction) {
       `**Possible solution**\n${field(interaction, "solution")}`,
       `**Next step**\n${field(interaction, "next") || "Needs triage"}`
     ].join("\n\n"));
-    await interaction.reply({ content: "Posted to #new-ideas.", ephemeral: true });
+    await interaction.reply({ content: "Posted to #new-ideas.", flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (kind === "decision") {
-    await sendToNamedChannel(interaction.guild, param, [
+    await sendToNamedChannel(guild, param, [
       `**Decision logged by ${interaction.user}**`,
       "",
       `**Decision**\n${field(interaction, "decision")}`,
       `**Why**\n${field(interaction, "why")}`,
       `**Owner**\n${field(interaction, "owner") || "Unassigned"}`
     ].join("\n\n"));
-    await interaction.reply({ content: `Logged to #${param}.`, ephemeral: true });
+    await interaction.reply({ content: `Logged to #${param}.`, flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (kind === "blocker") {
-    const coreRole = findRole(interaction.guild, "Core Team");
+    const coreRole = findRole(guild, "Core Team");
     const tag = param === "tag" && coreRole ? `${coreRole} ` : "";
-    await sendToNamedChannel(interaction.guild, "blockers", [
+    await sendToNamedChannel(guild, "blockers", [
       `${tag}**Blocker from ${interaction.user}**`,
       "",
       `**Blocked**\n${field(interaction, "blocker")}`,
       `**Impact**\n${field(interaction, "impact")}`,
       `**Help needed**\n${field(interaction, "help")}`
     ].join("\n\n"));
-    await interaction.reply({ content: "Posted to #blockers.", ephemeral: true });
+    await interaction.reply({ content: "Posted to #blockers.", flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -590,14 +624,14 @@ async function handleModalSubmit(interaction) {
       `**Asks**\n${field(interaction, "asks")}`,
       `**Blockers / risks**\n${field(interaction, "blockers") || "None"}`
     ].join("\n\n");
-    await sendToNamedChannel(interaction.guild, "strategy", content);
-    await interaction.reply({ content: "Posted to #strategy.", ephemeral: true });
+    await sendToNamedChannel(guild, "strategy", content);
+    await interaction.reply({ content: "Posted to #strategy.", flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (kind === "retro") {
     if (!interaction.channel || interaction.channel.type !== ChannelType.GuildText) {
-      await interaction.reply({ content: "Run /retro in a text channel.", ephemeral: true });
+      await interaction.reply({ content: "Run /retro in a text channel.", flags: MessageFlags.Ephemeral });
       return;
     }
     const now = new Date();
@@ -616,7 +650,7 @@ async function handleModalSubmit(interaction) {
       "",
       `**Action items**\n${field(interaction, "actions") || "None logged"}`
     ].join("\n"));
-    await interaction.reply({ content: `Retro thread created: ${thread}`, ephemeral: true });
+    await interaction.reply({ content: `Retro thread created: ${thread}`, flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -633,13 +667,13 @@ async function handleModalSubmit(interaction) {
       kr2 ? `2. ${kr2}` : null,
       kr3 ? `3. ${kr3}` : null
     ].filter(Boolean);
-    await sendToNamedChannel(interaction.guild, "okrs", lines.join("\n"));
-    await interaction.reply({ content: "Posted to #okrs.", ephemeral: true });
+    await sendToNamedChannel(guild, "okrs", lines.join("\n"));
+    await interaction.reply({ content: "Posted to #okrs.", flags: MessageFlags.Ephemeral });
     return;
   }
 
   if (kind === "bug-report") {
-    await sendToNamedChannel(interaction.guild, "bugs-and-issues", [
+    await sendToNamedChannel(guild, "bugs-and-issues", [
       `**Bug Report from ${interaction.user}**`,
       "",
       `**Title**: ${field(interaction, "title")}`,
@@ -649,7 +683,7 @@ async function handleModalSubmit(interaction) {
       "",
       `**Expected → Actual**\n${field(interaction, "expected_actual")}`
     ].join("\n"));
-    await interaction.reply({ content: "Posted to #bugs-and-issues.", ephemeral: true });
+    await interaction.reply({ content: "Posted to #bugs-and-issues.", flags: MessageFlags.Ephemeral });
     return;
   }
 
@@ -661,8 +695,8 @@ async function handleModalSubmit(interaction) {
       `**${field(interaction, "metric")}**: ${field(interaction, "value")}`,
     ];
     if (notes) lines.push("", notes);
-    await sendToNamedChannel(interaction.guild, "metrics", lines.join("\n"));
-    await interaction.reply({ content: "Posted to #metrics.", ephemeral: true });
+    await sendToNamedChannel(guild, "metrics", lines.join("\n"));
+    await interaction.reply({ content: "Posted to #metrics.", flags: MessageFlags.Ephemeral });
   }
 }
 
@@ -674,7 +708,7 @@ client.once(Events.ClientReady, (readyClient) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.inGuild()) {
     if (interaction.isRepliable()) {
-      await interaction.reply({ content: "Run this inside the Gambit Discord server.", ephemeral: true });
+      await interaction.reply({ content: "Run this inside the Gambit Discord server.", flags: MessageFlags.Ephemeral });
     }
     return;
   }
@@ -698,8 +732,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await handleSetupGambit(interaction);
         break;
       case "daily-standup":
-        await sendToNamedChannel(interaction.guild, "daily-standup", standupTemplate);
-        await interaction.reply({ content: "Posted to #daily-standup.", ephemeral: true });
+        await sendToNamedChannel(await getInteractionGuild(interaction), "daily-standup", standupTemplate);
+        await interaction.reply({ content: "Posted to #daily-standup.", flags: MessageFlags.Ephemeral });
         break;
       case "weekly-review":
         await handleWeeklyReview(interaction);
@@ -729,7 +763,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await handleAgenda(interaction);
         break;
       default:
-        await interaction.reply({ content: "Unknown command.", ephemeral: true });
+        await interaction.reply({ content: "Unknown command.", flags: MessageFlags.Ephemeral });
     }
   } catch (error) {
     console.error(error);
@@ -740,7 +774,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply(message);
     } else {
-      await interaction.reply({ content: message, ephemeral: true });
+      await interaction.reply({ content: message, flags: MessageFlags.Ephemeral });
     }
   }
 });

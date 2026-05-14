@@ -9,10 +9,19 @@ import {
 
 const requiredEnv = ["DISCORD_TOKEN", "DISCORD_CLIENT_ID", "DISCORD_GUILD_ID"];
 const missing = requiredEnv.filter((name) => !process.env[name]);
+const maxSnowflake = 9223372036854775807n;
 
 if (missing.length > 0) {
   console.error(`Missing required environment values: ${missing.join(", ")}`);
   process.exit(1);
+}
+
+for (const name of ["DISCORD_CLIENT_ID", "DISCORD_GUILD_ID"]) {
+  const value = process.env[name];
+  if (!/^\d+$/.test(value) || BigInt(value) > maxSnowflake) {
+    console.error(`${name} must be a valid Discord snowflake ID. Copy the numeric ID directly from Discord.`);
+    process.exit(1);
+  }
 }
 
 const commands = [
