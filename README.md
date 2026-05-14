@@ -1,5 +1,10 @@
 # Startup Discord Bot
 
+[![CI](https://github.com/SohamDutta2001/discord-startup-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/SohamDutta2001/discord-startup-kit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org)
+[![discord.js](https://img.shields.io/badge/discord.js-v14-5865F2)](https://discord.js.org)
+
 A self-hosted Discord bot that turns any server into a structured startup workspace — with slash commands for daily ops, team management, project tracking, async communication, polls, and KPI logging.
 
 Built for early-stage teams that need fewer tools, not more.
@@ -149,9 +154,30 @@ This creates all channels, roles, and permissions. It is safe to re-run — exis
 - The standup reminder uses the local time of the machine running the bot and only fires while the process is active.
 - Reminder state is persisted to `data/reminders.json` (gitignored).
 - All commands that post to a channel require `/setup-gambit` to have been run first.
+- Keep your real `.env` file private. If a Discord bot token is ever exposed, rotate it in the Discord Developer Portal.
+
+---
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+For bugs, include the command or setup step that failed, what you expected, what happened, and any relevant logs with tokens removed.
+
+---
+
+## Security
+
+Please do not open public issues for security-sensitive reports. See [SECURITY.md](SECURITY.md) for the reporting process.
+
+---
+
+## Author
+
+Created and maintained by **Soham Dutta**.
 
 ---
 
 ## License
 
-MIT
+MIT - see [LICENSE](LICENSE).

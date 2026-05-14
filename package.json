@@ -1,9 +1,25 @@
 {
   "name": "gambit-discord-bot",
   "version": "1.0.0",
-  "description": "Local Discord bot for setting up the Gambit startup server.",
+  "description": "Self-hosted Discord bot for turning a server into a startup workspace.",
   "type": "module",
-  "private": true,
+  "author": "Soham Dutta",
+  "license": "MIT",
+  "homepage": "https://github.com/SohamDutta2001/discord-startup-kit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SohamDutta2001/discord-startup-kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SohamDutta2001/discord-startup-kit/issues"
+  },
+  "keywords": [
+    "discord",
+    "discord-bot",
+    "startup",
+    "slash-commands",
+    "team-ops"
+  ],
   "scripts": {
     "deploy": "node src/deploy-commands.js",
     "start": "node src/index.js",
